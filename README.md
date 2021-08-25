@@ -1,0 +1,2 @@
+# dbHelper
+一个用于自动将数据库表信息转为go的struct的工具
