@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"regexp"
 	"runtime"
 	"strings"
 )
@@ -20,6 +21,7 @@ type TplField struct {
 	PackageName string
 	ModelName   string
 	TableName   string
+	Comment     string
 	Columns     []TplCol
 }
 type TplCol struct {
@@ -70,7 +72,7 @@ var genCmd = &cobra.Command{
 			return
 		}
 		tableFilename := path.Join(outputDir, fmt.Sprintf("%s.go", ms.Database))
-		tf, err := os.OpenFile(tableFilename, os.O_CREATE|os.O_TRUNC, 0777)
+		tf, err := os.OpenFile(tableFilename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0777)
 		if err != nil {
 			color.Errorf("创建文件[%s]失败，原因为：%s", tableFilename, err.Error())
 			return
@@ -103,7 +105,7 @@ var genCmd = &cobra.Command{
 						ColumnName: Camelize(col.Name),
 						ColumnType: colType,
 						Tag:        tag,
-						Comment:    col.Comment,
+						Comment:    ReplaceLineBreak(col.Comment),
 					})
 				}
 				packageName := ms.Database
@@ -114,12 +116,13 @@ var genCmd = &cobra.Command{
 				tpl := TplField{
 					PackageName: packageName,
 					ModelName:   Camelize(item.Name),
+					Comment:     ReplaceLineBreak(item.Comment),
 					TableName:   item.Name,
 					Columns:     cols,
 				}
 				if separate {
 					filename := path.Join(outputDir, fmt.Sprintf("%s.go", item.Name))
-					f, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC, 0777)
+					f, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0777)
 					if err != nil {
 						color.Errorf("创建文件[%s]失败，原因为：%s", filename, err.Error())
 						return
@@ -164,15 +167,27 @@ func init() {
 }
 
 func Camelize(name string) string {
-	if name == "id" {
-		return "ID"
+	reg, err := regexp.Compile(`[^a-zA-Z0-9]`)
+	if err != nil {
+		color.Errorln(err)
+		return name
 	}
-	res := strings.Split(name, "_")
+	res := reg.Split(name, -1)
+	//res := strings.Split(name, "_")
 	var s strings.Builder
 	for _, sub := range res {
-		s.WriteString(UCFirst(sub))
+		if sub == "id" {
+			sub = "ID"
+		} else {
+			sub = UCFirst(sub)
+		}
+		s.WriteString(sub)
 	}
-	return s.String()
+	ss := s.String()
+	if ss == "TableName" {
+		return "Table_Name"
+	}
+	return ss
 }
 
 func UCFirst(s string) string {
@@ -234,7 +249,7 @@ func If(ok bool, a, b string) string {
 func MkdirIfNotExists(dir string) error {
 	_, err := os.Stat(dir)
 	if err != nil {
-		return os.MkdirAll(dir, 0644)
+		return os.MkdirAll(dir, 0777)
 	}
 	return nil
 }
@@ -268,4 +283,14 @@ func ExecCommand(cmdStr string) (output, errStr string, err error) {
 		return stdout.String(), stderr.String(), err
 	}
 	return stdout.String(), stderr.String(), err
+}
+
+// ReplaceLineBreak 去掉换行
+func ReplaceLineBreak(s string) string {
+	reg, err := regexp.Compile(`[(\r\n)|\r|\n]+`)
+	if err != nil {
+		color.Error.Println(err)
+		return s
+	}
+	return reg.ReplaceAllString(s, "")
 }
