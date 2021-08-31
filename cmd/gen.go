@@ -50,6 +50,8 @@ var genCmd = &cobra.Command{
 		// 创建、更新时间字段
 		createFieldName, _ := cmd.Flags().GetString("create_tm")
 		updateFieldName, _ := cmd.Flags().GetString("update_tm")
+		createFields := strings.Split(createFieldName, ",")
+		updateFields := strings.Split(updateFieldName, ",")
 		// 是否使用sqlnull形式
 		useSqlNull, _ := cmd.Flags().GetBool("useSqlNull")
 		// 是否将内容输出为单独文件
@@ -91,15 +93,19 @@ var genCmd = &cobra.Command{
 				var cols []TplCol
 				for _, col := range columns {
 					colType := TransferDataType(col, useSqlNull)
-					if col.Name == createFieldName || col.Name == updateFieldName {
-						colType = "time.Time"
-					}
 					tag := fmt.Sprintf("column:%s", col.Name)
 					if col.IsPrimary {
 						tag = fmt.Sprintf("%s;primaryKey", tag)
 					}
 					if !col.IsNullable {
 						tag = fmt.Sprintf("%s;not null", tag)
+					}
+					if InArray(col.Name, createFields) {
+						colType = "time.Time"
+						tag = fmt.Sprintf("%s;autoCreateTime", tag)
+					} else if InArray(col.Name, updateFields) {
+						colType = "time.Time"
+						tag = fmt.Sprintf("%s;autoUpdateTime", tag)
 					}
 					cols = append(cols, TplCol{
 						ColumnName: Camelize(col.Name),
@@ -155,8 +161,8 @@ var genCmd = &cobra.Command{
 
 func init() {
 	genCmd.Flags().StringP("out_dir", "o", "./output", "生成文件的目录，默认当前目录下的output下")
-	genCmd.Flags().String("create_tm", "create_tm", "创建时间的字段名，默认create_tm")
-	genCmd.Flags().String("update_tm", "update_tm", "更新时间的字段名，默认update_tm")
+	genCmd.Flags().String("create_tm", "create_tm", "创建时间的字段名，默认create_tm，多个之间使用逗号分割")
+	genCmd.Flags().String("update_tm", "update_tm", "更新时间的字段名，默认update_tm，多个之间使用逗号分割")
 	genCmd.Flags().Bool("useSqlNull", false, "针对某些允许为null的字段，是否设置为sql.NullString等格式")
 	genCmd.Flags().Bool("separate", false, "是否将一张表生成一个文件（文件名为表名），还是所有的表生成为一个文件(数据库名.go)")
 	genCmd.Flags().StringP("database", "d", "", "指定数据库")
@@ -293,4 +299,13 @@ func ReplaceLineBreak(s string) string {
 		return s
 	}
 	return reg.ReplaceAllString(s, "")
+}
+
+func InArray(item string, dest []string) bool {
+	for i := 0; i < len(dest); i++ {
+		if item == dest[i] {
+			return true
+		}
+	}
+	return false
 }
