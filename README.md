@@ -11,7 +11,7 @@ information_schema                      mysql                                   
 ```
 > 列出所有表
 ```shell
-dbHelper list database -u root -H 127.0.0.1 --password xxx -d goods
+dbHelper list table -u root -H 127.0.0.1 --password xxx -d goods
 # 输出
 TableName                                         |TableEngine     |Rows            |DataLength      |IndexLength     |AutoIncrement   |CreateTime              |Comment
 article_list                                      |MyISAM          |28              |6.1 kB          |2.0 kB          |29              |2017-08-23 22:46:38     |单页面内容表
