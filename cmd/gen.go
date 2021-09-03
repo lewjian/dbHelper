@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"git.iglou.eu/Imported/go-wildcard"
 	"github.com/gookit/color"
+	"github.com/jinzhu/inflection"
 	"github.com/lewjian/dbHelper/config"
 	"github.com/lewjian/dbHelper/db"
 	"github.com/spf13/cobra"
@@ -101,11 +102,12 @@ var genCmd = &cobra.Command{
 						tag = fmt.Sprintf("%s;not null", tag)
 					}
 					if InArray(col.Name, createFields) {
-						colType = "time.Time"
 						tag = fmt.Sprintf("%s;autoCreateTime", tag)
 					} else if InArray(col.Name, updateFields) {
-						colType = "time.Time"
 						tag = fmt.Sprintf("%s;autoUpdateTime", tag)
+					} else if col.IsDefaultNull {
+						// 默认值为null
+						tag = fmt.Sprintf("%s;default:null", tag)
 					}
 					cols = append(cols, TplCol{
 						ColumnName: Camelize(col.Name),
@@ -119,9 +121,10 @@ var genCmd = &cobra.Command{
 				if !separate && matchNum > 0 {
 					packageName = ""
 				}
+				modelName := inflection.Singular(Camelize(item.Name))
 				tpl := TplField{
 					PackageName: packageName,
-					ModelName:   Camelize(item.Name),
+					ModelName:   modelName,
 					Comment:     ReplaceLineBreak(item.Comment),
 					TableName:   item.Name,
 					Columns:     cols,

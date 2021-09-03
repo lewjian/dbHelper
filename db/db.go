@@ -25,10 +25,11 @@ type TableInfo struct {
 }
 
 type ColumnInfo struct {
-	Name       string
-	IsPrimary  bool
-	IsNullable bool
-	DataType   string
-	Comment    string
-	ColumnType string
+	Name          string
+	IsPrimary     bool
+	IsNullable    bool
+	DataType      string
+	IsDefaultNull bool
+	Comment       string
+	ColumnType    string
 }

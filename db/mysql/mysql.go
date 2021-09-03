@@ -80,7 +80,7 @@ func (ms *MySQL) ListTables() ([]db.TableInfo, error) {
 }
 
 func (ms *MySQL) ListColumns(tableName string) ([]db.ColumnInfo, error) {
-	rows, err := ms.Db.Query("select COLUMN_NAME,IS_NULLABLE,DATA_TYPE,`COLUMN_COMMENT`,COLUMN_KEY,COLUMN_TYPE  from information_schema.`COLUMNS` where TABLE_NAME = ? and TABLE_SCHEMA = ?",
+	rows, err := ms.Db.Query("select COLUMN_NAME,IS_NULLABLE,DATA_TYPE,`COLUMN_COMMENT`,COLUMN_KEY,COLUMN_TYPE,COLUMN_DEFAULT  from information_schema.`COLUMNS` where TABLE_NAME = ? and TABLE_SCHEMA = ?",
 		tableName, ms.Database)
 	if err != nil {
 		return nil, err
@@ -89,8 +89,8 @@ func (ms *MySQL) ListColumns(tableName string) ([]db.ColumnInfo, error) {
 	for rows.Next() {
 		var t db.ColumnInfo
 		var isNullable string
-		var comment, key sql.NullString
-		if err = rows.Scan(&t.Name, &isNullable, &t.DataType, &comment, &key, &t.ColumnType); err != nil {
+		var comment, key, defaultValue sql.NullString
+		if err = rows.Scan(&t.Name, &isNullable, &t.DataType, &comment, &key, &t.ColumnType, &defaultValue); err != nil {
 			return nil, err
 		}
 		if isNullable == "YES" {
@@ -98,6 +98,9 @@ func (ms *MySQL) ListColumns(tableName string) ([]db.ColumnInfo, error) {
 		}
 		if comment.Valid {
 			t.Comment = comment.String
+		}
+		if !defaultValue.Valid {
+			t.IsDefaultNull = true
 		}
 		if key.Valid && key.String == "PRI" {
 			t.IsPrimary = true
