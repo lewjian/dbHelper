@@ -101,6 +101,8 @@ func (ms *MySQL) ListColumns(tableName string) ([]db.ColumnInfo, error) {
 		}
 		if !defaultValue.Valid {
 			t.IsDefaultNull = true
+		} else {
+			t.DefaultValue = defaultValue.String
 		}
 		if key.Valid && key.String == "PRI" {
 			t.IsPrimary = true

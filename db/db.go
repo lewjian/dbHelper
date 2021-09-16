@@ -30,6 +30,7 @@ type ColumnInfo struct {
 	IsNullable    bool
 	DataType      string
 	IsDefaultNull bool
+	DefaultValue  string
 	Comment       string
 	ColumnType    string
 }

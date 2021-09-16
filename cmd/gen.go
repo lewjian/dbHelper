@@ -105,10 +105,17 @@ var genCmd = &cobra.Command{
 						tag = fmt.Sprintf("%s;autoCreateTime", tag)
 					} else if InArray(col.Name, updateFields) {
 						tag = fmt.Sprintf("%s;autoUpdateTime", tag)
-					} else if col.IsDefaultNull {
-						// 默认值为null
-						tag = fmt.Sprintf("%s;default:null", tag)
+					} else {
+						if col.IsDefaultNull && col.IsNullable {
+							// 默认值为null
+							if !col.IsPrimary {
+								tag = fmt.Sprintf("%s;default:null", tag)
+							}
+						} else if col.DefaultValue != "" && col.DefaultValue != "CURRENT_TIMESTAMP" {
+							tag = fmt.Sprintf("%s;default:%s", tag, col.DefaultValue)
+						}
 					}
+
 					cols = append(cols, TplCol{
 						ColumnName: Camelize(col.Name),
 						ColumnType: colType,
